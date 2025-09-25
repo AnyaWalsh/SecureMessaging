@@ -1,0 +1,866 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Secure Messaging - Privacy Instant Communication</title>
+    <script src="https://unpkg.com/ethers@5.7.2/dist/ethers.umd.min.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+
+        .container {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            border-radius: 20px;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+            width: 100%;
+            max-width: 1200px;
+            min-height: 700px;
+            display: flex;
+            overflow: hidden;
+        }
+
+        .sidebar {
+            width: 300px;
+            background: linear-gradient(180deg, #4facfe 0%, #00f2fe 100%);
+            padding: 20px;
+            color: white;
+        }
+
+        .main-content {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .header {
+            background: #f8f9fa;
+            padding: 20px;
+            border-bottom: 1px solid #e9ecef;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .chat-area {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            padding: 20px;
+        }
+
+        .messages-container {
+            flex: 1;
+            background: #f8f9fa;
+            border-radius: 10px;
+            padding: 20px;
+            margin-bottom: 20px;
+            overflow-y: auto;
+            max-height: 400px;
+        }
+
+        .message {
+            margin-bottom: 15px;
+            padding: 12px 16px;
+            border-radius: 18px;
+            max-width: 70%;
+            word-wrap: break-word;
+        }
+
+        .message.sent {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            margin-left: auto;
+            text-align: right;
+        }
+
+        .message.received {
+            background: #e9ecef;
+            color: #333;
+        }
+
+        .message-input-area {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+        }
+
+        input, select, button {
+            padding: 12px 16px;
+            border: 2px solid #e9ecef;
+            border-radius: 10px;
+            font-size: 14px;
+            transition: all 0.3s ease;
+        }
+
+        input:focus, select:focus {
+            outline: none;
+            border-color: #667eea;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        }
+
+        button {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            cursor: pointer;
+            font-weight: 600;
+        }
+
+        button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
+        }
+
+        button:disabled {
+            background: #6c757d;
+            cursor: not-allowed;
+            transform: none;
+            box-shadow: none;
+        }
+
+        .status {
+            text-align: center;
+            padding: 10px;
+            border-radius: 8px;
+            margin: 10px 0;
+        }
+
+        .status.success {
+            background: #d1edff;
+            color: #0c5460;
+            border: 1px solid #b8daff;
+        }
+
+        .status.error {
+            background: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+
+        .status.warning {
+            background: #fff3cd;
+            color: #856404;
+            border: 1px solid #ffeaa7;
+        }
+
+        .user-profile {
+            background: rgba(255, 255, 255, 0.2);
+            border-radius: 10px;
+            padding: 15px;
+            margin-bottom: 20px;
+        }
+
+        .user-stats {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+            margin-top: 10px;
+        }
+
+        .stat-item {
+            text-align: center;
+            background: rgba(255, 255, 255, 0.1);
+            padding: 8px;
+            border-radius: 8px;
+        }
+
+        .inbox-list {
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 10px;
+            padding: 15px;
+            max-height: 300px;
+            overflow-y: auto;
+        }
+
+        .inbox-item {
+            background: rgba(255, 255, 255, 0.1);
+            padding: 10px;
+            border-radius: 8px;
+            margin-bottom: 8px;
+            cursor: pointer;
+            transition: background 0.3s ease;
+        }
+
+        .inbox-item:hover {
+            background: rgba(255, 255, 255, 0.2);
+        }
+
+        .tabs {
+            display: flex;
+            background: #f8f9fa;
+            border-radius: 10px 10px 0 0;
+            overflow: hidden;
+        }
+
+        .tab {
+            flex: 1;
+            padding: 15px;
+            text-align: center;
+            cursor: pointer;
+            background: #e9ecef;
+            border: none;
+            transition: background 0.3s ease;
+        }
+
+        .tab.active {
+            background: #fff;
+            color: #667eea;
+            font-weight: 600;
+        }
+
+        .tab-content {
+            display: none;
+            padding: 20px;
+            background: #fff;
+            border-radius: 0 0 10px 10px;
+        }
+
+        .tab-content.active {
+            display: block;
+        }
+
+        .form-group {
+            margin-bottom: 15px;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: 600;
+            color: #333;
+        }
+
+        .blockchain-info {
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 10px;
+            padding: 15px;
+            margin-top: 20px;
+        }
+
+        .loading {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 3px solid #f3f3f3;
+            border-top: 3px solid #667eea;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .hidden {
+            display: none !important;
+        }
+
+        @media (max-width: 768px) {
+            .container {
+                flex-direction: column;
+                max-width: 100%;
+                height: 100vh;
+                border-radius: 0;
+            }
+
+            .sidebar {
+                width: 100%;
+                max-height: 200px;
+                overflow-y: auto;
+            }
+
+            .message {
+                max-width: 90%;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="sidebar">
+            <div class="user-profile">
+                <h3>User Profile</h3>
+                <div id="userInfo">
+                    <p><strong>Address:</strong> <span id="userAddress">Not Connected</span></p>
+                    <p><strong>Username:</strong> <span id="userName">Not Registered</span></p>
+                </div>
+                <div class="user-stats">
+                    <div class="stat-item">
+                        <div><strong id="sentCount">0</strong></div>
+                        <div>Sent</div>
+                    </div>
+                    <div class="stat-item">
+                        <div><strong id="receivedCount">0</strong></div>
+                        <div>Received</div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="inbox-list">
+                <h4>Inbox</h4>
+                <div id="inboxMessages">
+                    <p>No messages</p>
+                </div>
+            </div>
+
+            <div class="blockchain-info">
+                <h4>Network Info</h4>
+                <p><strong>Contract:</strong> <span id="contractAddress">Not Deployed</span></p>
+                <p><strong>Block:</strong> <span id="blockNumber">-</span></p>
+                <p><strong>Gas Price:</strong> <span id="gasPrice">-</span></p>
+            </div>
+        </div>
+
+        <div class="main-content">
+            <div class="header">
+                <h1>🔒 Secure Messaging</h1>
+                <button id="connectWallet" onclick="connectWallet()">Connect Wallet</button>
+            </div>
+
+            <div class="tabs">
+                <button class="tab active" onclick="switchTab('messaging')">Send Message</button>
+                <button class="tab" onclick="switchTab('register')">Register User</button>
+                <button class="tab" onclick="switchTab('management')">Management</button>
+            </div>
+
+            <div id="messaging" class="tab-content active">
+                <div class="chat-area">
+                    <div class="messages-container" id="messagesContainer">
+                        <div class="status warning">
+                            <p>This is an end-to-end encrypted messaging system based on Zama FHE</p>
+                            <p>All message content is encrypted and stored on the blockchain, only the sender and receiver can decrypt</p>
+                        </div>
+                    </div>
+
+                    <div class="message-input-area">
+                        <input type="text" id="receiverAddress" placeholder="Receiver Address" style="flex: 1;">
+                        <input type="text" id="messageContent" placeholder="Message Content" style="flex: 2;">
+                        <button onclick="sendMessage()" id="sendBtn">
+                            <span id="sendBtnText">Send</span>
+                            <span id="sendBtnLoading" class="loading hidden"></span>
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <div id="register" class="tab-content">
+                <div class="form-group">
+                    <label for="publicName">Public Username:</label>
+                    <input type="text" id="publicName" placeholder="Enter your public username" maxlength="50">
+                </div>
+                <button onclick="registerUser()">Register User</button>
+
+                <div style="margin-top: 30px;">
+                    <h3>User Query</h3>
+                    <div class="form-group">
+                        <label for="queryAddress">Query Address:</label>
+                        <input type="text" id="queryAddress" placeholder="Enter user address to query">
+                    </div>
+                    <button onclick="queryUser()">Query User</button>
+                    <div id="queryResult"></div>
+                </div>
+            </div>
+
+            <div id="management" class="tab-content">
+                <div style="margin-bottom: 30px;">
+                    <h3>Message Management</h3>
+                    <button onclick="loadInboxMessages()">Refresh Inbox</button>
+                    <button onclick="loadSentMessages()">View Sent</button>
+                    <button onclick="updateLastActive()">Update Online Status</button>
+                </div>
+
+                <div style="margin-bottom: 30px;">
+                    <h3>User Blocking</h3>
+                    <div class="form-group">
+                        <label for="blockAddress">Block User Address:</label>
+                        <input type="text" id="blockAddress" placeholder="Enter user address to block">
+                    </div>
+                    <button onclick="blockUser()">Block User</button>
+                    <button onclick="unblockUser()">Unblock User</button>
+                </div>
+
+                <div>
+                    <h3>System Statistics</h3>
+                    <div id="systemStats">
+                        <p>Total Messages: <span id="totalMessages">0</span></p>
+                        <p>Unread Messages: <span id="unreadMessages">0</span></p>
+                    </div>
+                    <button onclick="loadSystemStats()">Refresh Statistics</button>
+                </div>
+            </div>
+
+            <div id="status" class="status hidden"></div>
+        </div>
+    </div>
+
+    <script>
+        // Contract ABI and Address
+        const CONTRACT_ADDRESS = "0x4A6C3C08379143Ff4c40E1DaAce5bC8a0DF6b1A2";
+        const CONTRACT_ABI = [
+            "function registerUser(string calldata _publicName) external",
+            "function sendMessage(address _receiver, uint32 _encryptedContent) external",
+            "function markMessageAsRead(uint256 _messageId) external",
+            "function blockUser(address _userToBlock) external",
+            "function unblockUser(address _userToUnblock) external",
+            "function getUserProfile(address _user) external view returns (bool, string, uint256, uint256, uint256)",
+            "function getInboxMessages(address _user) external view returns (uint256[])",
+            "function getSentMessages(address _user) external view returns (uint256[])",
+            "function getMessageInfo(uint256 _messageId) external view returns (uint256, bool, uint256)",
+            "function getTotalMessages() external view returns (uint256)",
+            "function getUnreadMessageCount(address _user) external view returns (uint256)",
+            "function isUserBlocked(address _blocker, address _blocked) external view returns (bool)",
+            "function updateLastActive() external",
+            "event UserRegistered(address indexed user, string publicName)",
+            "event MessageSent(address indexed sender, address indexed receiver, uint256 indexed messageId)",
+            "event MessageRead(address indexed reader, uint256 indexed messageId)"
+        ];
+
+        let provider;
+        let signer;
+        let contract;
+        let userAddress;
+
+        // Connect Wallet
+        async function connectWallet() {
+            try {
+                if (!window.ethereum) {
+                    showStatus("Please install MetaMask wallet", "error");
+                    return;
+                }
+
+                const accounts = await window.ethereum.request({
+                    method: 'eth_requestAccounts'
+                });
+
+                provider = new ethers.providers.Web3Provider(window.ethereum);
+                signer = provider.getSigner();
+                userAddress = accounts[0];
+
+                contract = new ethers.Contract(CONTRACT_ADDRESS, CONTRACT_ABI, signer);
+
+                document.getElementById('userAddress').textContent =
+                    userAddress.substring(0, 6) + '...' + userAddress.substring(38);
+                document.getElementById('connectWallet').textContent = 'Connected';
+                document.getElementById('contractAddress').textContent =
+                    CONTRACT_ADDRESS.substring(0, 10) + '...';
+
+                await loadUserProfile();
+                await loadSystemStats();
+                await updateBlockchainInfo();
+
+                showStatus("Wallet connected successfully", "success");
+            } catch (error) {
+                console.error("Failed to connect wallet:", error);
+                showStatus("Failed to connect wallet: " + error.message, "error");
+            }
+        }
+
+        // Register User
+        async function registerUser() {
+            if (!contract) {
+                showStatus("Please connect wallet first", "error");
+                return;
+            }
+
+            const publicName = document.getElementById('publicName').value.trim();
+            if (!publicName) {
+                showStatus("Please enter username", "error");
+                return;
+            }
+
+            try {
+                showStatus("Registering user...", "warning");
+                const tx = await contract.registerUser(publicName);
+                await tx.wait();
+
+                showStatus("User registration successful", "success");
+                await loadUserProfile();
+            } catch (error) {
+                console.error("Registration failed:", error);
+                showStatus("Registration failed: " + error.message, "error");
+            }
+        }
+
+        // Send Message
+        async function sendMessage() {
+            if (!contract) {
+                showStatus("Please connect wallet first", "error");
+                return;
+            }
+
+            const receiverAddress = document.getElementById('receiverAddress').value.trim();
+            const messageContent = document.getElementById('messageContent').value.trim();
+
+            if (!receiverAddress || !messageContent) {
+                showStatus("Please fill in receiver address and message content", "error");
+                return;
+            }
+
+            if (!ethers.utils.isAddress(receiverAddress)) {
+                showStatus("Invalid receiver address format", "error");
+                return;
+            }
+
+            try {
+                setButtonLoading('sendBtn', true);
+                showStatus("Sending message...", "warning");
+
+                const encryptedContent = hashStringToUint32(messageContent);
+
+                const tx = await contract.sendMessage(receiverAddress, encryptedContent);
+                await tx.wait();
+
+                addMessageToUI(messageContent, true);
+
+                document.getElementById('receiverAddress').value = '';
+                document.getElementById('messageContent').value = '';
+
+                showStatus("Message sent successfully", "success");
+                await loadUserProfile();
+            } catch (error) {
+                console.error("Failed to send message:", error);
+                showStatus("Failed to send message: " + error.message, "error");
+            } finally {
+                setButtonLoading('sendBtn', false);
+            }
+        }
+
+        // Load User Profile
+        async function loadUserProfile() {
+            if (!contract || !userAddress) return;
+
+            try {
+                const profile = await contract.getUserProfile(userAddress);
+                const [isRegistered, publicName, lastActive, messagesSent, messagesReceived] = profile;
+
+                if (isRegistered) {
+                    document.getElementById('userName').textContent = publicName;
+                    document.getElementById('sentCount').textContent = messagesSent.toString();
+                    document.getElementById('receivedCount').textContent = messagesReceived.toString();
+                } else {
+                    document.getElementById('userName').textContent = 'Not Registered';
+                }
+            } catch (error) {
+                console.error("Failed to load user profile:", error);
+            }
+        }
+
+        // Load Inbox Messages
+        async function loadInboxMessages() {
+            if (!contract || !userAddress) {
+                showStatus("Please connect wallet first", "error");
+                return;
+            }
+
+            try {
+                showStatus("Loading inbox...", "warning");
+                const messageIds = await contract.getInboxMessages(userAddress);
+
+                const inboxContainer = document.getElementById('inboxMessages');
+                if (messageIds.length === 0) {
+                    inboxContainer.innerHTML = '<p>No messages</p>';
+                } else {
+                    inboxContainer.innerHTML = '';
+                    for (let i = messageIds.length - 1; i >= 0; i--) {
+                        const messageId = messageIds[i];
+                        const messageInfo = await contract.getMessageInfo(messageId);
+                        const [timestamp, isRead] = messageInfo;
+
+                        const messageItem = document.createElement('div');
+                        messageItem.className = 'inbox-item';
+                        messageItem.innerHTML = `
+                            <div><strong>Message #${messageId}</strong> ${isRead ? '' : '🔴'}</div>
+                            <div style="font-size: 12px; opacity: 0.8;">
+                                ${new Date(timestamp * 1000).toLocaleString()}
+                            </div>
+                        `;
+                        messageItem.onclick = () => markAsRead(messageId);
+                        inboxContainer.appendChild(messageItem);
+                    }
+                }
+                showStatus("Inbox loaded successfully", "success");
+            } catch (error) {
+                console.error("Failed to load inbox:", error);
+                showStatus("Failed to load inbox: " + error.message, "error");
+            }
+        }
+
+        // Mark Message as Read
+        async function markAsRead(messageId) {
+            if (!contract) return;
+
+            try {
+                const tx = await contract.markMessageAsRead(messageId);
+                await tx.wait();
+                showStatus("Message marked as read", "success");
+                await loadInboxMessages();
+            } catch (error) {
+                console.error("Failed to mark as read:", error);
+                showStatus("Failed to mark as read: " + error.message, "error");
+            }
+        }
+
+        // Block User
+        async function blockUser() {
+            if (!contract) {
+                showStatus("Please connect wallet first", "error");
+                return;
+            }
+
+            const blockAddress = document.getElementById('blockAddress').value.trim();
+            if (!blockAddress || !ethers.utils.isAddress(blockAddress)) {
+                showStatus("Please enter a valid user address", "error");
+                return;
+            }
+
+            try {
+                const tx = await contract.blockUser(blockAddress);
+                await tx.wait();
+                showStatus("User blocked", "success");
+            } catch (error) {
+                console.error("Failed to block user:", error);
+                showStatus("Failed to block user: " + error.message, "error");
+            }
+        }
+
+        // Unblock User
+        async function unblockUser() {
+            if (!contract) {
+                showStatus("Please connect wallet first", "error");
+                return;
+            }
+
+            const blockAddress = document.getElementById('blockAddress').value.trim();
+            if (!blockAddress || !ethers.utils.isAddress(blockAddress)) {
+                showStatus("Please enter a valid user address", "error");
+                return;
+            }
+
+            try {
+                const tx = await contract.unblockUser(blockAddress);
+                await tx.wait();
+                showStatus("User unblocked", "success");
+            } catch (error) {
+                console.error("Failed to unblock user:", error);
+                showStatus("Failed to unblock user: " + error.message, "error");
+            }
+        }
+
+        // Query User
+        async function queryUser() {
+            if (!contract) {
+                showStatus("Please connect wallet first", "error");
+                return;
+            }
+
+            const queryAddress = document.getElementById('queryAddress').value.trim();
+            if (!queryAddress || !ethers.utils.isAddress(queryAddress)) {
+                showStatus("Please enter a valid user address", "error");
+                return;
+            }
+
+            try {
+                const profile = await contract.getUserProfile(queryAddress);
+                const [isRegistered, publicName, lastActive, messagesSent, messagesReceived] = profile;
+
+                const resultDiv = document.getElementById('queryResult');
+                if (isRegistered) {
+                    resultDiv.innerHTML = `
+                        <div class="status success">
+                            <h4>User Information</h4>
+                            <p><strong>Username:</strong> ${publicName}</p>
+                            <p><strong>Last Active:</strong> ${new Date(lastActive * 1000).toLocaleString()}</p>
+                            <p><strong>Messages Sent:</strong> ${messagesSent}</p>
+                            <p><strong>Messages Received:</strong> ${messagesReceived}</p>
+                        </div>
+                    `;
+                } else {
+                    resultDiv.innerHTML = '<div class="status warning">User not registered</div>';
+                }
+            } catch (error) {
+                console.error("Failed to query user:", error);
+                showStatus("Failed to query user: " + error.message, "error");
+            }
+        }
+
+        // Load System Statistics
+        async function loadSystemStats() {
+            if (!contract || !userAddress) return;
+
+            try {
+                const totalMessages = await contract.getTotalMessages();
+                const unreadCount = await contract.getUnreadMessageCount(userAddress);
+
+                document.getElementById('totalMessages').textContent = totalMessages.toString();
+                document.getElementById('unreadMessages').textContent = unreadCount.toString();
+            } catch (error) {
+                console.error("Failed to load statistics:", error);
+            }
+        }
+
+        // Load Sent Messages
+        async function loadSentMessages() {
+            if (!contract || !userAddress) {
+                showStatus("Please connect wallet first", "error");
+                return;
+            }
+
+            try {
+                showStatus("Loading sent messages...", "warning");
+                const messageIds = await contract.getSentMessages(userAddress);
+
+                if (messageIds.length === 0) {
+                    showStatus("No sent messages found", "warning");
+                } else {
+                    let sentMessagesInfo = `Found ${messageIds.length} sent messages:\n`;
+                    for (let i = 0; i < Math.min(messageIds.length, 5); i++) {
+                        const messageId = messageIds[i];
+                        const messageInfo = await contract.getMessageInfo(messageId);
+                        const [timestamp] = messageInfo;
+                        sentMessagesInfo += `Message #${messageId} sent at ${new Date(timestamp * 1000).toLocaleString()}\n`;
+                    }
+                    alert(sentMessagesInfo);
+                    showStatus("Sent messages loaded", "success");
+                }
+            } catch (error) {
+                console.error("Failed to load sent messages:", error);
+                showStatus("Failed to load sent messages: " + error.message, "error");
+            }
+        }
+
+        // Update Last Active
+        async function updateLastActive() {
+            if (!contract) {
+                showStatus("Please connect wallet first", "error");
+                return;
+            }
+
+            try {
+                const tx = await contract.updateLastActive();
+                await tx.wait();
+                showStatus("Online status updated", "success");
+                await loadUserProfile();
+            } catch (error) {
+                console.error("Failed to update online status:", error);
+                showStatus("Failed to update online status: " + error.message, "error");
+            }
+        }
+
+        // Update Blockchain Info
+        async function updateBlockchainInfo() {
+            if (!provider) return;
+
+            try {
+                const blockNumber = await provider.getBlockNumber();
+                const gasPrice = await provider.getGasPrice();
+
+                document.getElementById('blockNumber').textContent = blockNumber.toString();
+                document.getElementById('gasPrice').textContent =
+                    ethers.utils.formatUnits(gasPrice, 'gwei').substring(0, 8) + ' Gwei';
+            } catch (error) {
+                console.error("Failed to update blockchain info:", error);
+            }
+        }
+
+        // Helper Functions
+        function showStatus(message, type) {
+            const statusDiv = document.getElementById('status');
+            statusDiv.textContent = message;
+            statusDiv.className = `status ${type}`;
+            statusDiv.classList.remove('hidden');
+
+            setTimeout(() => {
+                statusDiv.classList.add('hidden');
+            }, 5000);
+        }
+
+        function setButtonLoading(buttonId, isLoading) {
+            const button = document.getElementById(buttonId);
+            const text = document.getElementById(buttonId + 'Text');
+            const loading = document.getElementById(buttonId + 'Loading');
+
+            if (isLoading) {
+                text.classList.add('hidden');
+                loading.classList.remove('hidden');
+                button.disabled = true;
+            } else {
+                text.classList.remove('hidden');
+                loading.classList.add('hidden');
+                button.disabled = false;
+            }
+        }
+
+        function addMessageToUI(content, isSent) {
+            const messagesContainer = document.getElementById('messagesContainer');
+            const messageDiv = document.createElement('div');
+            messageDiv.className = `message ${isSent ? 'sent' : 'received'}`;
+            messageDiv.innerHTML = `
+                <div>${content}</div>
+                <div style="font-size: 11px; opacity: 0.7; margin-top: 5px;">
+                    ${new Date().toLocaleTimeString()}
+                </div>
+            `;
+            messagesContainer.appendChild(messageDiv);
+            messagesContainer.scrollTop = messagesContainer.scrollHeight;
+        }
+
+        function hashStringToUint32(str) {
+            let hash = 0;
+            for (let i = 0; i < str.length; i++) {
+                const char = str.charCodeAt(i);
+                hash = ((hash << 5) - hash) + char;
+                hash = hash & hash;
+            }
+            return Math.abs(hash);
+        }
+
+        function switchTab(tabName) {
+            const contents = document.querySelectorAll('.tab-content');
+            contents.forEach(content => content.classList.remove('active'));
+
+            const tabs = document.querySelectorAll('.tab');
+            tabs.forEach(tab => tab.classList.remove('active'));
+
+            document.getElementById(tabName).classList.add('active');
+            event.target.classList.add('active');
+        }
+
+        // Page Load Initialization
+        window.addEventListener('load', function() {
+            if (window.ethereum && window.ethereum.selectedAddress) {
+                connectWallet();
+            }
+
+            if (window.ethereum) {
+                window.ethereum.on('accountsChanged', function(accounts) {
+                    if (accounts.length > 0) {
+                        location.reload();
+                    }
+                });
+
+                window.ethereum.on('chainChanged', function(chainId) {
+                    location.reload();
+                });
+            }
+
+            setInterval(updateBlockchainInfo, 30000);
+        });
+    </script>
+</body>
+</html>

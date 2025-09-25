@@ -1,0 +1,23 @@
+{
+  "name": "secure-messaging",
+  "version": "1.0.0",
+  "description": "Privacy Instant Communication with Zama FHE",
+  "main": "index.html",
+  "scripts": {
+    "dev": "vercel dev",
+    "build": "echo 'Static build complete'",
+    "start": "echo 'Static site ready'"
+  },
+  "keywords": [
+    "blockchain",
+    "privacy",
+    "messaging",
+    "encryption",
+    "zama",
+    "fhe"
+  ],
+  "author": "Secure Messaging Team",
+  "license": "MIT",
+  "dependencies": {},
+  "devDependencies": {}
+}

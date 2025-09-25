@@ -1,6 +1,7 @@
 {
   "version": 2,
   "name": "secure-messaging-dapp",
+  "outputDirectory": ".",
   "cleanUrls": true,
   "trailingSlash": false,
   "headers": [

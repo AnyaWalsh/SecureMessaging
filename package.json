@@ -1,0 +1,35 @@
+{
+  "name": "secure-messaging-dapp",
+  "version": "1.0.0",
+  "description": "Privacy Instant Communication with Zama FHE - Secure messaging DApp with encrypted communications",
+  "main": "index.html",
+  "homepage": "https://secure-messaging-dapp.vercel.app",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/yourusername/secure-messaging-dapp.git"
+  },
+  "scripts": {
+    "dev": "npx http-server . -p 8080 -c-1 --cors",
+    "build": "echo 'Static build complete'",
+    "start": "npx http-server . -p 8080 -c-1 --cors",
+    "deploy": "vercel --prod"
+  },
+  "keywords": [
+    "blockchain",
+    "privacy",
+    "messaging",
+    "encryption",
+    "zama",
+    "fhe",
+    "dapp",
+    "web3",
+    "secure-messaging"
+  ],
+  "author": "Secure Messaging Team",
+  "license": "MIT",
+  "dependencies": {},
+  "devDependencies": {},
+  "engines": {
+    "node": "22.x"
+  }
+}

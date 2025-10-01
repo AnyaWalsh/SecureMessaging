@@ -1,0 +1,1109 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Secure Messaging - Privacy Instant Communication</title>
+    <script src="https://unpkg.com/ethers@5.7.2/dist/ethers.umd.min.js"></script>
+    <style>
+        :root {
+            --primary-bg: #0a0e27;
+            --secondary-bg: #151932;
+            --tertiary-bg: #1e2442;
+            --accent-primary: #00f5ff;
+            --accent-secondary: #7b2ff7;
+            --accent-gradient: linear-gradient(135deg, #00f5ff 0%, #7b2ff7 100%);
+            --text-primary: #ffffff;
+            --text-secondary: #b8c1ec;
+            --text-muted: #7b8ab8;
+            --success: #00ff88;
+            --error: #ff4757;
+            --warning: #ffa502;
+            --border-color: rgba(123, 42, 247, 0.2);
+            --glow: rgba(0, 245, 255, 0.3);
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Inter', 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: var(--primary-bg);
+            background-image:
+                radial-gradient(at 0% 0%, rgba(123, 42, 247, 0.15) 0px, transparent 50%),
+                radial-gradient(at 100% 100%, rgba(0, 245, 255, 0.15) 0px, transparent 50%);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+            color: var(--text-primary);
+        }
+
+        .container {
+            background: var(--secondary-bg);
+            backdrop-filter: blur(20px);
+            border-radius: 24px;
+            box-shadow:
+                0 20px 60px rgba(0, 0, 0, 0.5),
+                0 0 0 1px var(--border-color),
+                inset 0 1px 0 rgba(255, 255, 255, 0.05);
+            width: 100%;
+            max-width: 1280px;
+            min-height: 760px;
+            display: flex;
+            overflow: hidden;
+            position: relative;
+        }
+
+        .container::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 1px;
+            background: linear-gradient(90deg,
+                transparent,
+                var(--accent-primary),
+                var(--accent-secondary),
+                transparent);
+            opacity: 0.5;
+        }
+
+        .sidebar {
+            width: 320px;
+            background: var(--tertiary-bg);
+            background-image: linear-gradient(180deg,
+                rgba(123, 42, 247, 0.1) 0%,
+                transparent 50%);
+            padding: 24px;
+            border-right: 1px solid var(--border-color);
+            overflow-y: auto;
+        }
+
+        .sidebar::-webkit-scrollbar {
+            width: 6px;
+        }
+
+        .sidebar::-webkit-scrollbar-track {
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 3px;
+        }
+
+        .sidebar::-webkit-scrollbar-thumb {
+            background: var(--accent-secondary);
+            border-radius: 3px;
+        }
+
+        .main-content {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            background: var(--secondary-bg);
+        }
+
+        .header {
+            background: var(--tertiary-bg);
+            padding: 24px 32px;
+            border-bottom: 1px solid var(--border-color);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .header h1 {
+            font-size: 24px;
+            font-weight: 700;
+            background: var(--accent-gradient);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .chat-area {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            padding: 24px;
+        }
+
+        .messages-container {
+            flex: 1;
+            background: var(--primary-bg);
+            border-radius: 16px;
+            padding: 24px;
+            margin-bottom: 20px;
+            overflow-y: auto;
+            max-height: 440px;
+            border: 1px solid var(--border-color);
+        }
+
+        .messages-container::-webkit-scrollbar {
+            width: 8px;
+        }
+
+        .messages-container::-webkit-scrollbar-track {
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 4px;
+        }
+
+        .messages-container::-webkit-scrollbar-thumb {
+            background: var(--accent-secondary);
+            border-radius: 4px;
+        }
+
+        .message {
+            margin-bottom: 16px;
+            padding: 14px 18px;
+            border-radius: 16px;
+            max-width: 70%;
+            word-wrap: break-word;
+            animation: messageSlide 0.3s ease;
+        }
+
+        @keyframes messageSlide {
+            from {
+                opacity: 0;
+                transform: translateY(10px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .message.sent {
+            background: var(--accent-gradient);
+            color: var(--text-primary);
+            margin-left: auto;
+            text-align: right;
+            box-shadow: 0 4px 16px rgba(123, 42, 247, 0.4);
+        }
+
+        .message.received {
+            background: var(--tertiary-bg);
+            color: var(--text-primary);
+            border: 1px solid var(--border-color);
+        }
+
+        .message-input-area {
+            display: flex;
+            gap: 12px;
+            align-items: center;
+        }
+
+        input, select {
+            padding: 14px 18px;
+            background: var(--tertiary-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            font-size: 14px;
+            color: var(--text-primary);
+            transition: all 0.3s ease;
+        }
+
+        input::placeholder {
+            color: var(--text-muted);
+        }
+
+        input:focus, select:focus {
+            outline: none;
+            border-color: var(--accent-primary);
+            box-shadow: 0 0 0 3px rgba(0, 245, 255, 0.1),
+                        0 0 20px rgba(0, 245, 255, 0.2);
+        }
+
+        button {
+            padding: 14px 24px;
+            background: var(--accent-gradient);
+            color: var(--text-primary);
+            border: none;
+            border-radius: 12px;
+            cursor: pointer;
+            font-weight: 600;
+            font-size: 14px;
+            transition: all 0.3s ease;
+            position: relative;
+            overflow: hidden;
+        }
+
+        button::before {
+            content: '';
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            width: 0;
+            height: 0;
+            border-radius: 50%;
+            background: rgba(255, 255, 255, 0.2);
+            transform: translate(-50%, -50%);
+            transition: width 0.6s, height 0.6s;
+        }
+
+        button:hover::before {
+            width: 300px;
+            height: 300px;
+        }
+
+        button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 24px rgba(123, 42, 247, 0.5),
+                        0 0 40px rgba(0, 245, 255, 0.3);
+        }
+
+        button:active {
+            transform: translateY(0);
+        }
+
+        button:disabled {
+            background: var(--tertiary-bg);
+            cursor: not-allowed;
+            transform: none;
+            box-shadow: none;
+            opacity: 0.5;
+        }
+
+        .status {
+            text-align: center;
+            padding: 12px 20px;
+            border-radius: 12px;
+            margin: 12px 0;
+            border: 1px solid;
+            font-weight: 500;
+        }
+
+        .status.success {
+            background: rgba(0, 255, 136, 0.1);
+            color: var(--success);
+            border-color: var(--success);
+        }
+
+        .status.error {
+            background: rgba(255, 71, 87, 0.1);
+            color: var(--error);
+            border-color: var(--error);
+        }
+
+        .status.warning {
+            background: rgba(255, 165, 2, 0.1);
+            color: var(--warning);
+            border-color: var(--warning);
+        }
+
+        .user-profile {
+            background: var(--primary-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 16px;
+            padding: 20px;
+            margin-bottom: 24px;
+        }
+
+        .user-profile h3 {
+            font-size: 16px;
+            margin-bottom: 16px;
+            color: var(--accent-primary);
+            font-weight: 600;
+        }
+
+        .user-profile p {
+            font-size: 13px;
+            margin-bottom: 8px;
+            color: var(--text-secondary);
+        }
+
+        .user-profile strong {
+            color: var(--text-primary);
+        }
+
+        .user-stats {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 12px;
+            margin-top: 16px;
+        }
+
+        .stat-item {
+            text-align: center;
+            background: var(--tertiary-bg);
+            padding: 12px;
+            border-radius: 12px;
+            border: 1px solid var(--border-color);
+            transition: all 0.3s ease;
+        }
+
+        .stat-item:hover {
+            border-color: var(--accent-primary);
+            box-shadow: 0 0 20px rgba(0, 245, 255, 0.2);
+        }
+
+        .stat-item strong {
+            display: block;
+            font-size: 24px;
+            color: var(--accent-primary);
+            margin-bottom: 4px;
+        }
+
+        .stat-item div:last-child {
+            font-size: 12px;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .inbox-list {
+            background: var(--primary-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 16px;
+            padding: 20px;
+            max-height: 340px;
+            overflow-y: auto;
+        }
+
+        .inbox-list h4 {
+            font-size: 16px;
+            margin-bottom: 16px;
+            color: var(--accent-primary);
+            font-weight: 600;
+        }
+
+        .inbox-item {
+            background: var(--tertiary-bg);
+            padding: 14px;
+            border-radius: 12px;
+            margin-bottom: 10px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            border: 1px solid transparent;
+        }
+
+        .inbox-item:hover {
+            background: var(--secondary-bg);
+            border-color: var(--accent-primary);
+            transform: translateX(4px);
+            box-shadow: 0 4px 16px rgba(0, 245, 255, 0.2);
+        }
+
+        .tabs {
+            display: flex;
+            background: var(--primary-bg);
+            border-radius: 16px 16px 0 0;
+            overflow: hidden;
+            border: 1px solid var(--border-color);
+            border-bottom: none;
+        }
+
+        .tab {
+            flex: 1;
+            padding: 16px;
+            text-align: center;
+            cursor: pointer;
+            background: var(--primary-bg);
+            border: none;
+            color: var(--text-muted);
+            transition: all 0.3s ease;
+            font-weight: 500;
+            position: relative;
+        }
+
+        .tab::after {
+            content: '';
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            height: 2px;
+            background: var(--accent-gradient);
+            transform: scaleX(0);
+            transition: transform 0.3s ease;
+        }
+
+        .tab.active {
+            background: var(--tertiary-bg);
+            color: var(--accent-primary);
+            font-weight: 600;
+        }
+
+        .tab.active::after {
+            transform: scaleX(1);
+        }
+
+        .tab:hover:not(.active) {
+            color: var(--text-secondary);
+            background: var(--secondary-bg);
+        }
+
+        .tab-content {
+            display: none;
+            padding: 24px;
+            background: var(--tertiary-bg);
+            border-radius: 0 0 16px 16px;
+            border: 1px solid var(--border-color);
+            border-top: none;
+        }
+
+        .tab-content.active {
+            display: block;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 600;
+            color: var(--text-secondary);
+            font-size: 14px;
+        }
+
+        .blockchain-info {
+            background: var(--primary-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 16px;
+            padding: 20px;
+            margin-top: 24px;
+        }
+
+        .blockchain-info h4 {
+            font-size: 16px;
+            margin-bottom: 16px;
+            color: var(--accent-primary);
+            font-weight: 600;
+        }
+
+        .blockchain-info p {
+            font-size: 13px;
+            margin-bottom: 8px;
+            color: var(--text-secondary);
+        }
+
+        .blockchain-info strong {
+            color: var(--text-primary);
+        }
+
+        .loading {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 3px solid rgba(255, 255, 255, 0.2);
+            border-top: 3px solid var(--accent-primary);
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .hidden {
+            display: none !important;
+        }
+
+        @media (max-width: 768px) {
+            .container {
+                flex-direction: column;
+                max-width: 100%;
+                height: 100vh;
+                border-radius: 0;
+            }
+
+            .sidebar {
+                width: 100%;
+                max-height: 240px;
+                overflow-y: auto;
+                border-right: none;
+                border-bottom: 1px solid var(--border-color);
+            }
+
+            .message {
+                max-width: 90%;
+            }
+
+            .header h1 {
+                font-size: 18px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="sidebar">
+            <div class="user-profile">
+                <h3>User Profile</h3>
+                <div id="userInfo">
+                    <p><strong>Address:</strong> <span id="userAddress">Not Connected</span></p>
+                    <p><strong>Username:</strong> <span id="userName">Not Registered</span></p>
+                </div>
+                <div class="user-stats">
+                    <div class="stat-item">
+                        <div><strong id="sentCount">0</strong></div>
+                        <div>Sent</div>
+                    </div>
+                    <div class="stat-item">
+                        <div><strong id="receivedCount">0</strong></div>
+                        <div>Received</div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="inbox-list">
+                <h4>Inbox</h4>
+                <div id="inboxMessages">
+                    <p>No messages</p>
+                </div>
+            </div>
+
+            <div class="blockchain-info">
+                <h4>Network Info</h4>
+                <p><strong>Contract:</strong> <span id="contractAddress">Not Deployed</span></p>
+                <p><strong>Block:</strong> <span id="blockNumber">-</span></p>
+                <p><strong>Gas Price:</strong> <span id="gasPrice">-</span></p>
+            </div>
+        </div>
+
+        <div class="main-content">
+            <div class="header">
+                <h1>🔒 Secure Messaging</h1>
+                <button id="connectWallet" onclick="connectWallet()">Connect Wallet</button>
+            </div>
+
+            <div class="tabs">
+                <button class="tab active" onclick="switchTab('messaging')">Send Message</button>
+                <button class="tab" onclick="switchTab('register')">Register User</button>
+                <button class="tab" onclick="switchTab('management')">Management</button>
+            </div>
+
+            <div id="messaging" class="tab-content active">
+                <div class="chat-area">
+                    <div class="messages-container" id="messagesContainer">
+                        <div class="status warning">
+                            <p>This is an end-to-end encrypted messaging system based on Zama FHE</p>
+                            <p>All message content is encrypted and stored on the blockchain, only the sender and receiver can decrypt</p>
+                        </div>
+                    </div>
+
+                    <div class="message-input-area">
+                        <input type="text" id="receiverAddress" placeholder="Receiver Address" style="flex: 1;">
+                        <input type="text" id="messageContent" placeholder="Message Content" style="flex: 2;">
+                        <button onclick="sendMessage()" id="sendBtn">
+                            <span id="sendBtnText">Send</span>
+                            <span id="sendBtnLoading" class="loading hidden"></span>
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <div id="register" class="tab-content">
+                <div class="form-group">
+                    <label for="publicName">Public Username:</label>
+                    <input type="text" id="publicName" placeholder="Enter your public username" maxlength="50">
+                </div>
+                <button onclick="registerUser()">Register User</button>
+
+                <div style="margin-top: 30px;">
+                    <h3>User Query</h3>
+                    <div class="form-group">
+                        <label for="queryAddress">Query Address:</label>
+                        <input type="text" id="queryAddress" placeholder="Enter user address to query">
+                    </div>
+                    <button onclick="queryUser()">Query User</button>
+                    <div id="queryResult"></div>
+                </div>
+            </div>
+
+            <div id="management" class="tab-content">
+                <div style="margin-bottom: 30px;">
+                    <h3>Message Management</h3>
+                    <button onclick="loadInboxMessages()">Refresh Inbox</button>
+                    <button onclick="loadSentMessages()">View Sent</button>
+                    <button onclick="updateLastActive()">Update Online Status</button>
+                </div>
+
+                <div style="margin-bottom: 30px;">
+                    <h3>User Blocking</h3>
+                    <div class="form-group">
+                        <label for="blockAddress">Block User Address:</label>
+                        <input type="text" id="blockAddress" placeholder="Enter user address to block">
+                    </div>
+                    <button onclick="blockUser()">Block User</button>
+                    <button onclick="unblockUser()">Unblock User</button>
+                </div>
+
+                <div>
+                    <h3>System Statistics</h3>
+                    <div id="systemStats">
+                        <p>Total Messages: <span id="totalMessages">0</span></p>
+                        <p>Unread Messages: <span id="unreadMessages">0</span></p>
+                    </div>
+                    <button onclick="loadSystemStats()">Refresh Statistics</button>
+                </div>
+            </div>
+
+            <div id="status" class="status hidden"></div>
+        </div>
+    </div>
+
+    <script>
+        // Contract ABI and Address
+        const CONTRACT_ADDRESS = "0x4A6C3C08379143Ff4c40E1DaAce5bC8a0DF6b1A2";
+        const CONTRACT_ABI = [
+            "function registerUser(string calldata _publicName) external",
+            "function sendMessage(address _receiver, uint32 _encryptedContent) external",
+            "function markMessageAsRead(uint256 _messageId) external",
+            "function blockUser(address _userToBlock) external",
+            "function unblockUser(address _userToUnblock) external",
+            "function getUserProfile(address _user) external view returns (bool, string, uint256, uint256, uint256)",
+            "function getInboxMessages(address _user) external view returns (uint256[])",
+            "function getSentMessages(address _user) external view returns (uint256[])",
+            "function getMessageInfo(uint256 _messageId) external view returns (uint256, bool, uint256)",
+            "function getTotalMessages() external view returns (uint256)",
+            "function getUnreadMessageCount(address _user) external view returns (uint256)",
+            "function isUserBlocked(address _blocker, address _blocked) external view returns (bool)",
+            "function updateLastActive() external",
+            "event UserRegistered(address indexed user, string publicName)",
+            "event MessageSent(address indexed sender, address indexed receiver, uint256 indexed messageId)",
+            "event MessageRead(address indexed reader, uint256 indexed messageId)"
+        ];
+
+        let provider;
+        let signer;
+        let contract;
+        let userAddress;
+
+        // Connect Wallet
+        async function connectWallet() {
+            try {
+                if (!window.ethereum) {
+                    showStatus("Please install MetaMask wallet", "error");
+                    return;
+                }
+
+                const accounts = await window.ethereum.request({
+                    method: 'eth_requestAccounts'
+                });
+
+                provider = new ethers.providers.Web3Provider(window.ethereum);
+                signer = provider.getSigner();
+                userAddress = accounts[0];
+
+                contract = new ethers.Contract(CONTRACT_ADDRESS, CONTRACT_ABI, signer);
+
+                document.getElementById('userAddress').textContent =
+                    userAddress.substring(0, 6) + '...' + userAddress.substring(38);
+                document.getElementById('connectWallet').textContent = 'Connected';
+                document.getElementById('contractAddress').textContent =
+                    CONTRACT_ADDRESS.substring(0, 10) + '...';
+
+                await loadUserProfile();
+                await loadSystemStats();
+                await updateBlockchainInfo();
+
+                showStatus("Wallet connected successfully", "success");
+            } catch (error) {
+                console.error("Failed to connect wallet:", error);
+                showStatus("Failed to connect wallet: " + error.message, "error");
+            }
+        }
+
+        // Register User
+        async function registerUser() {
+            if (!contract) {
+                showStatus("Please connect wallet first", "error");
+                return;
+            }
+
+            const publicName = document.getElementById('publicName').value.trim();
+            if (!publicName) {
+                showStatus("Please enter username", "error");
+                return;
+            }
+
+            try {
+                showStatus("Registering user...", "warning");
+                const tx = await contract.registerUser(publicName);
+                await tx.wait();
+
+                showStatus("User registration successful", "success");
+                await loadUserProfile();
+            } catch (error) {
+                console.error("Registration failed:", error);
+                showStatus("Registration failed: " + error.message, "error");
+            }
+        }
+
+        // Send Message
+        async function sendMessage() {
+            if (!contract) {
+                showStatus("Please connect wallet first", "error");
+                return;
+            }
+
+            const receiverAddress = document.getElementById('receiverAddress').value.trim();
+            const messageContent = document.getElementById('messageContent').value.trim();
+
+            if (!receiverAddress || !messageContent) {
+                showStatus("Please fill in receiver address and message content", "error");
+                return;
+            }
+
+            if (!ethers.utils.isAddress(receiverAddress)) {
+                showStatus("Invalid receiver address format", "error");
+                return;
+            }
+
+            try {
+                setButtonLoading('sendBtn', true);
+                showStatus("Sending message...", "warning");
+
+                const encryptedContent = hashStringToUint32(messageContent);
+
+                const tx = await contract.sendMessage(receiverAddress, encryptedContent);
+                await tx.wait();
+
+                addMessageToUI(messageContent, true);
+
+                document.getElementById('receiverAddress').value = '';
+                document.getElementById('messageContent').value = '';
+
+                showStatus("Message sent successfully", "success");
+                await loadUserProfile();
+            } catch (error) {
+                console.error("Failed to send message:", error);
+                showStatus("Failed to send message: " + error.message, "error");
+            } finally {
+                setButtonLoading('sendBtn', false);
+            }
+        }
+
+        // Load User Profile
+        async function loadUserProfile() {
+            if (!contract || !userAddress) return;
+
+            try {
+                const profile = await contract.getUserProfile(userAddress);
+                const [isRegistered, publicName, lastActive, messagesSent, messagesReceived] = profile;
+
+                if (isRegistered) {
+                    document.getElementById('userName').textContent = publicName;
+                    document.getElementById('sentCount').textContent = messagesSent.toString();
+                    document.getElementById('receivedCount').textContent = messagesReceived.toString();
+                } else {
+                    document.getElementById('userName').textContent = 'Not Registered';
+                }
+            } catch (error) {
+                console.error("Failed to load user profile:", error);
+            }
+        }
+
+        // Load Inbox Messages
+        async function loadInboxMessages() {
+            if (!contract || !userAddress) {
+                showStatus("Please connect wallet first", "error");
+                return;
+            }
+
+            try {
+                showStatus("Loading inbox...", "warning");
+                const messageIds = await contract.getInboxMessages(userAddress);
+
+                const inboxContainer = document.getElementById('inboxMessages');
+                if (messageIds.length === 0) {
+                    inboxContainer.innerHTML = '<p>No messages</p>';
+                } else {
+                    inboxContainer.innerHTML = '';
+                    for (let i = messageIds.length - 1; i >= 0; i--) {
+                        const messageId = messageIds[i];
+                        const messageInfo = await contract.getMessageInfo(messageId);
+                        const [timestamp, isRead] = messageInfo;
+
+                        const messageItem = document.createElement('div');
+                        messageItem.className = 'inbox-item';
+                        messageItem.innerHTML = `
+                            <div><strong>Message #${messageId}</strong> ${isRead ? '' : '🔴'}</div>
+                            <div style="font-size: 12px; opacity: 0.8;">
+                                ${new Date(timestamp * 1000).toLocaleString()}
+                            </div>
+                        `;
+                        messageItem.onclick = () => markAsRead(messageId);
+                        inboxContainer.appendChild(messageItem);
+                    }
+                }
+                showStatus("Inbox loaded successfully", "success");
+            } catch (error) {
+                console.error("Failed to load inbox:", error);
+                showStatus("Failed to load inbox: " + error.message, "error");
+            }
+        }
+
+        // Mark Message as Read
+        async function markAsRead(messageId) {
+            if (!contract) return;
+
+            try {
+                const tx = await contract.markMessageAsRead(messageId);
+                await tx.wait();
+                showStatus("Message marked as read", "success");
+                await loadInboxMessages();
+            } catch (error) {
+                console.error("Failed to mark as read:", error);
+                showStatus("Failed to mark as read: " + error.message, "error");
+            }
+        }
+
+        // Block User
+        async function blockUser() {
+            if (!contract) {
+                showStatus("Please connect wallet first", "error");
+                return;
+            }
+
+            const blockAddress = document.getElementById('blockAddress').value.trim();
+            if (!blockAddress || !ethers.utils.isAddress(blockAddress)) {
+                showStatus("Please enter a valid user address", "error");
+                return;
+            }
+
+            try {
+                const tx = await contract.blockUser(blockAddress);
+                await tx.wait();
+                showStatus("User blocked", "success");
+            } catch (error) {
+                console.error("Failed to block user:", error);
+                showStatus("Failed to block user: " + error.message, "error");
+            }
+        }
+
+        // Unblock User
+        async function unblockUser() {
+            if (!contract) {
+                showStatus("Please connect wallet first", "error");
+                return;
+            }
+
+            const blockAddress = document.getElementById('blockAddress').value.trim();
+            if (!blockAddress || !ethers.utils.isAddress(blockAddress)) {
+                showStatus("Please enter a valid user address", "error");
+                return;
+            }
+
+            try {
+                const tx = await contract.unblockUser(blockAddress);
+                await tx.wait();
+                showStatus("User unblocked", "success");
+            } catch (error) {
+                console.error("Failed to unblock user:", error);
+                showStatus("Failed to unblock user: " + error.message, "error");
+            }
+        }
+
+        // Query User
+        async function queryUser() {
+            if (!contract) {
+                showStatus("Please connect wallet first", "error");
+                return;
+            }
+
+            const queryAddress = document.getElementById('queryAddress').value.trim();
+            if (!queryAddress || !ethers.utils.isAddress(queryAddress)) {
+                showStatus("Please enter a valid user address", "error");
+                return;
+            }
+
+            try {
+                const profile = await contract.getUserProfile(queryAddress);
+                const [isRegistered, publicName, lastActive, messagesSent, messagesReceived] = profile;
+
+                const resultDiv = document.getElementById('queryResult');
+                if (isRegistered) {
+                    resultDiv.innerHTML = `
+                        <div class="status success">
+                            <h4>User Information</h4>
+                            <p><strong>Username:</strong> ${publicName}</p>
+                            <p><strong>Last Active:</strong> ${new Date(lastActive * 1000).toLocaleString()}</p>
+                            <p><strong>Messages Sent:</strong> ${messagesSent}</p>
+                            <p><strong>Messages Received:</strong> ${messagesReceived}</p>
+                        </div>
+                    `;
+                } else {
+                    resultDiv.innerHTML = '<div class="status warning">User not registered</div>';
+                }
+            } catch (error) {
+                console.error("Failed to query user:", error);
+                showStatus("Failed to query user: " + error.message, "error");
+            }
+        }
+
+        // Load System Statistics
+        async function loadSystemStats() {
+            if (!contract || !userAddress) return;
+
+            try {
+                const totalMessages = await contract.getTotalMessages();
+                const unreadCount = await contract.getUnreadMessageCount(userAddress);
+
+                document.getElementById('totalMessages').textContent = totalMessages.toString();
+                document.getElementById('unreadMessages').textContent = unreadCount.toString();
+            } catch (error) {
+                console.error("Failed to load statistics:", error);
+            }
+        }
+
+        // Load Sent Messages
+        async function loadSentMessages() {
+            if (!contract || !userAddress) {
+                showStatus("Please connect wallet first", "error");
+                return;
+            }
+
+            try {
+                showStatus("Loading sent messages...", "warning");
+                const messageIds = await contract.getSentMessages(userAddress);
+
+                if (messageIds.length === 0) {
+                    showStatus("No sent messages found", "warning");
+                } else {
+                    let sentMessagesInfo = `Found ${messageIds.length} sent messages:\n`;
+                    for (let i = 0; i < Math.min(messageIds.length, 5); i++) {
+                        const messageId = messageIds[i];
+                        const messageInfo = await contract.getMessageInfo(messageId);
+                        const [timestamp] = messageInfo;
+                        sentMessagesInfo += `Message #${messageId} sent at ${new Date(timestamp * 1000).toLocaleString()}\n`;
+                    }
+                    alert(sentMessagesInfo);
+                    showStatus("Sent messages loaded", "success");
+                }
+            } catch (error) {
+                console.error("Failed to load sent messages:", error);
+                showStatus("Failed to load sent messages: " + error.message, "error");
+            }
+        }
+
+        // Update Last Active
+        async function updateLastActive() {
+            if (!contract) {
+                showStatus("Please connect wallet first", "error");
+                return;
+            }
+
+            try {
+                const tx = await contract.updateLastActive();
+                await tx.wait();
+                showStatus("Online status updated", "success");
+                await loadUserProfile();
+            } catch (error) {
+                console.error("Failed to update online status:", error);
+                showStatus("Failed to update online status: " + error.message, "error");
+            }
+        }
+
+        // Update Blockchain Info
+        async function updateBlockchainInfo() {
+            if (!provider) return;
+
+            try {
+                const blockNumber = await provider.getBlockNumber();
+                const gasPrice = await provider.getGasPrice();
+
+                document.getElementById('blockNumber').textContent = blockNumber.toString();
+                document.getElementById('gasPrice').textContent =
+                    ethers.utils.formatUnits(gasPrice, 'gwei').substring(0, 8) + ' Gwei';
+            } catch (error) {
+                console.error("Failed to update blockchain info:", error);
+            }
+        }
+
+        // Helper Functions
+        function showStatus(message, type) {
+            const statusDiv = document.getElementById('status');
+            statusDiv.textContent = message;
+            statusDiv.className = `status ${type}`;
+            statusDiv.classList.remove('hidden');
+
+            setTimeout(() => {
+                statusDiv.classList.add('hidden');
+            }, 5000);
+        }
+
+        function setButtonLoading(buttonId, isLoading) {
+            const button = document.getElementById(buttonId);
+            const text = document.getElementById(buttonId + 'Text');
+            const loading = document.getElementById(buttonId + 'Loading');
+
+            if (isLoading) {
+                text.classList.add('hidden');
+                loading.classList.remove('hidden');
+                button.disabled = true;
+            } else {
+                text.classList.remove('hidden');
+                loading.classList.add('hidden');
+                button.disabled = false;
+            }
+        }
+
+        function addMessageToUI(content, isSent) {
+            const messagesContainer = document.getElementById('messagesContainer');
+            const messageDiv = document.createElement('div');
+            messageDiv.className = `message ${isSent ? 'sent' : 'received'}`;
+            messageDiv.innerHTML = `
+                <div>${content}</div>
+                <div style="font-size: 11px; opacity: 0.7; margin-top: 5px;">
+                    ${new Date().toLocaleTimeString()}
+                </div>
+            `;
+            messagesContainer.appendChild(messageDiv);
+            messagesContainer.scrollTop = messagesContainer.scrollHeight;
+        }
+
+        function hashStringToUint32(str) {
+            let hash = 0;
+            for (let i = 0; i < str.length; i++) {
+                const char = str.charCodeAt(i);
+                hash = ((hash << 5) - hash) + char;
+                hash = hash & hash;
+            }
+            return Math.abs(hash);
+        }
+
+        function switchTab(tabName) {
+            const contents = document.querySelectorAll('.tab-content');
+            contents.forEach(content => content.classList.remove('active'));
+
+            const tabs = document.querySelectorAll('.tab');
+            tabs.forEach(tab => tab.classList.remove('active'));
+
+            document.getElementById(tabName).classList.add('active');
+            event.target.classList.add('active');
+        }
+
+        // Page Load Initialization
+        window.addEventListener('load', function() {
+            if (window.ethereum && window.ethereum.selectedAddress) {
+                connectWallet();
+            }
+
+            if (window.ethereum) {
+                window.ethereum.on('accountsChanged', function(accounts) {
+                    if (accounts.length > 0) {
+                        location.reload();
+                    }
+                });
+
+                window.ethereum.on('chainChanged', function(chainId) {
+                    location.reload();
+                });
+            }
+
+            setInterval(updateBlockchainInfo, 30000);
+        });
+    </script>
+</body>
+</html>
